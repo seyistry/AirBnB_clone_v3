@@ -4,6 +4,7 @@ This module contains endpoint(route) status
 """
 from models import storage
 from models.place import Place
+from models.user import User
 from models.review import Review
 from api.v1.views import app_views
 from flask import jsonify, abort, request, make_response
@@ -47,14 +48,21 @@ def delete_review(review_id):
 def create_review(place_id):
     """create review in place """
     place = storage.get(Place, place_id)
+    user = storage.get(Place, place_id)
     if place is None:
         abort(404)
     if not request.get_json():
         return make_response(jsonify({"error": "Not a JSON"}), 400)
-    if 'name' not in request.get_json():
-        return make_response(jsonify({"error": "Missing name"}), 400)
-    js = request.get_json()
-    review_obj = Review(**js)
+    if 'user_id' not in request.get_json():
+        return make_response(jsonify({"error": "Missing user_id"}), 400)
+    if 'text' not in request.get_json():
+        return make_response(jsonify({"error": "Missing text"}), 400)
+    kwargs = request.get_json()
+    kwargs['place_id'] = place_id
+    user = storage.get(User, kwargs['user_id'])
+    if user is None:
+        abort(404)
+    review_obj = Review(**kwargs)
     review_obj.place_id = place.id
     review_obj.save()
     return jsonify(review_obj.to_dict()), 201
@@ -70,7 +78,8 @@ def update_review(review_id):
     if not request.get_json():
         return make_response(jsonify({"error": "Not a JSON"}), 400)
     for key, value in request.get_json().items():
-        if key not in ['id', 'place_id', 'created_at', ]:
+        if key not in ['id', 'user_id', 'place_id',
+                       'created_at', 'updated_at']:
             setattr(review_obj, key, value)
     storage.save()
     return jsonify(review_obj.to_dict())
