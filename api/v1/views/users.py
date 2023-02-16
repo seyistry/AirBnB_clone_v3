@@ -1,70 +1,77 @@
+
 #!/usr/bin/python3
+""" User APIRest
 """
-This module contains endpoint(route) users
-"""
+
 from models import storage
 from models.user import User
 from api.v1.views import app_views
-from flask import jsonify, abort, request, make_response
+from flask import jsonify, abort, request
 
 
-@app_views.route('/users', methods=['GET'],
-                 strict_slashes=False)
-def get_all_users():
-    """get all users"""
-    result = [obj.to_dict() for obj in storage.all(User).values()]
-    return jsonify(result)
+@app_views.route('/users', methods=['GET'])
+def user_list():
+    """ list of an objetc in a dict form
+    """
+    lista = []
+    dic = storage.all('User')
+    for elem in dic:
+        lista.append(dic[elem].to_dict())
+    return (jsonify(lista))
 
 
-@app_views.route('/users/<string:user_id>', methods=['GET'],
-                 strict_slashes=False)
-def get_user_id(user_id):
-    """retrieve user by id """
-    user = storage.get(User, user_id)
-    if user is None:
-        abort(404)
-    return jsonify(user.to_dict())
+@app_views.route('/users/<user_id>', methods=['GET', 'DELETE'])
+def user_id(user_id):
+    """ realize the specific action depending on method
+    """
+    lista = []
+    dic = storage.all('User')
+    for elem in dic:
+        var = dic[elem].to_dict()
+        if var["id"] == user_id:
+            if request.method == 'GET':
+                return (jsonify(var))
+            elif request.method == 'DELETE':
+                aux = {}
+                dic[elem].delete()
+                storage.save()
+                return (jsonify(aux))
+    abort(404)
 
 
-@app_views.route('/users/<string:user_id>', methods=['DELETE'],
-                 strict_slashes=False)
-def delete_user_id(user_id):
-    """delete user by id """
-    user = storage.get(User, user_id)
-    if user is None:
-        abort(404)
-    user.delete()
-    storage.save()
-    return jsonify({})
+@app_views.route('/users', methods=['POST'])
+def user_item():
+    """ add a new item
+    """
+    if not request.json:
+        return jsonify("Not a JSON"), 400
+    else:
+        content = request.get_json()
+        if "email" not in content.keys():
+            return jsonify("Missing email"), 400
+        if "password" not in content.keys():
+            return jsonify("Missing password"), 400
+        else:
+            new_user = User(**content)
+            new_user.save()
+            return (jsonify(new_user.to_dict()), 201)
 
 
-@app_views.route('/users', methods=['POST'],
-                 strict_slashes=False)
-def create_user_id():
-    """create new user """
-    if not request.get_json():
-        return make_response(jsonify({"error": "Not a JSON"}), 400)
-    if 'email' not in request.get_json():
-        return make_response(jsonify({"error": "Missing email"}), 400)
-    if 'password' not in request.get_json():
-        return make_response(jsonify({"error": "Missing password"}), 400)
-    kwarg = request.get_json()
-    user_obj = User(**kwarg)
-    user_obj.save()
-    return jsonify(user_obj.to_dict()), 201
-
-
-@app_views.route('/users/<string:user_id>', methods=['PUT'],
-                 strict_slashes=False)
-def update_user_id(user_id):
-    """ update methods """
-    if not request.get_json():
-        return make_response(jsonify({"error": "Not a JSON"}), 400)
-    user_obj = storage.get(User, user_id)
-    if user_obj is None:
-        abort(404)
-    for key, value in request.get_json().items():
-        if key not in ['id', 'email', 'created_at', 'updated_at']:
-            setattr(user_obj, key, value)
-    storage.save()
-    return jsonify(user_obj.to_dict())
+@app_views.route('/users/<user_id>', methods=['PUT'])
+def update_user(user_id):
+    """ update an item
+    """
+    dic = storage.all("User")
+    for key in dic:
+        if dic[key].id == user_id:
+            if not request.json:
+                return jsonify("Not a JSON"), 400
+            else:
+                forbidden = ["id", "email", "update_at", "created_at"]
+                content = request.get_json()
+                for k in content:
+                    if k not in forbidden:
+                        setattr(dic[key], k, content[k])
+                dic[key].save()
+                return(jsonify(dic[key].to_dict()))
+    abort(404)
