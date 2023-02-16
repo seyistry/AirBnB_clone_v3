@@ -44,12 +44,10 @@ def create_user_id():
     """create new user """
     if not request.get_json():
         return make_response(jsonify({"error": "Not a JSON"}), 400)
-    if 'email' not in request.get_json():
-        return make_response(jsonify({"error": "Missing email"}), 400)
-    if 'password' not in request.get_json():
-        return make_response(jsonify({"error": "Missing password"}), 400)
-    kwarg = request.get_json()
-    user_obj = User(**kwarg)
+    if 'name' not in request.get_json():
+        return make_response(jsonify({"error": "Missing name"}), 400)
+    js = request.get_json()
+    user_obj = User(**js)
     user_obj.save()
     return jsonify(user_obj.to_dict()), 201
 
@@ -64,7 +62,7 @@ def update_user_id(user_id):
     if user_obj is None:
         abort(404)
     for key, value in request.get_json().items():
-        if key not in ['id', 'email', 'created_at', 'updated_at']:
+        if key not in ['id', 'created_at']:
             setattr(user_obj, key, value)
     storage.save()
     return jsonify(user_obj.to_dict())
