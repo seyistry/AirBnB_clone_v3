@@ -70,3 +70,4 @@ def update_place_id(place_id):
             setattr(user_obj, key, value)
     storage.save()
     return jsonify(user_obj.to_dict())
+    
