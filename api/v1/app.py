@@ -9,6 +9,7 @@ from models import storage
 from api.v1.views import app_views
 from flask import make_response
 from flask_cors import CORS
+from os import environ
 
 
 app = Flask(__name__)
@@ -30,4 +31,10 @@ def teardown_db(exception):
 
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port='5000', threaded=True, debug=True)
+    """ Main function """
+    host = environ.get('HBNB_API_HOST')
+    port = environ.get('HBNB_API_PORT')
+    if not host:
+        host = '0.0.0.0'
+        port = '5000'
+    app.run(host=host, port=port, threaded=True, debug=True)
